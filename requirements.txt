@@ -1,0 +1,6 @@
+fastapi[standard]
+SQLAlchemy
+pydantic-settings
+psycopg2-binary
+SQLAlchemy-Utils
+alembic

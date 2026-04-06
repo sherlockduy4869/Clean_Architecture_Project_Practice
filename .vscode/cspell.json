@@ -1,0 +1,19 @@
+{
+    "version": "0.2",
+
+    "language": "en",
+
+    "ignorePaths": [
+        "**/venv/**"
+    ],
+
+    "words": [
+        "Pylance",
+        "Pyright",
+        "venv",
+        "pycache",
+        "icountry",
+        "fastapi",
+        "icountry"
+    ]
+}
