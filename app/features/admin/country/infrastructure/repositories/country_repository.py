@@ -37,9 +37,9 @@ class CountryRepository(ICountryRepository):
     @override
     def create_country(self, country: CountryEntity) -> CountryEntity:
         country_model = map_country_entity_to_country_model(country)
-        result = self.session.add(country_model)
+        self.session.add(country_model)
         self.session.commit()
-        return map_country_model_to_country_entity(result)
+        return map_country_model_to_country_entity(country_model)
 
     @override
     def update_country(self, country_id: int, country: CountryEntity) -> CountryEntity:

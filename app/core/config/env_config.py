@@ -10,7 +10,7 @@ class EnvConfig(BaseSettings):
     db_port: int
 
     model_config = ConfigDict(
-        env_file = '.env',
+        env_file = '.env.dev',
         env_file_encoding = 'utf-8',
         case_sensitive = False,
         extra = 'ignore'

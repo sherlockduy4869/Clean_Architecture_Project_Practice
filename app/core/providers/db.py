@@ -5,4 +5,4 @@ from app.core.data.source.local.database import Database
 
 def get_db_session() -> Generator[Session, None, None]:
     session = Database(get_env_config()).get_session()
-    return session
+    yield from session

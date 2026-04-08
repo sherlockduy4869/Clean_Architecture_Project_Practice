@@ -2,8 +2,15 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from sqlalchemy import create_engine
 
 from alembic import context
+import os
+from dotenv import load_dotenv
+
+env_mode = os.getenv("APP_ENV")
+env_file = f".env.{env_mode}"
+load_dotenv(env_file)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,11 +21,29 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# get db url from .env file
+database_url = os.getenv("DB_URL")
+if not database_url:
+    raise ValueError("DB_URL is not set in the environment variables")
+
+# import base model
+from app.core.data.source.local.base import Base
+
+# import the models here
+
+try:
+    # import the country model
+    from app.features.admin.country.infrastructure.models.country_model import (
+        CountryModel,
+    )
+except ImportError:
+    pass
+
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -38,7 +63,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -57,15 +82,13 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    engine = create_engine(database_url, poolclass=pool.NullPool)
 
-    with connectable.connect() as connection:
+    with engine.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,  # Enable type comparison for autogenerate
         )
 
         with context.begin_transaction():
