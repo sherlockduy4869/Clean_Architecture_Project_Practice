@@ -6,11 +6,16 @@ from app.features.admin.country.interface.dependencies import get_country_servic
 from app.features.admin.country.interface.schemas import (
     CountryListResponse,
     CountryResponse,
-    CreateCountryRequest
+    CreateCountryRequest,
+    UpdateCountryRequest,
 )
 from app.features.admin.country.domain.country_entity import CountryEntity
 from app.features.admin.country.interface.mappers.map_create_country_schema_to_entity import (
     mapCreateCountryRequestToEntity,
+)
+
+from app.features.admin.country.interface.mappers.map_update_country_schema_to_entity import (
+    mapUpdateCountryRequestToEntity,
 )
 
 v1_router = get_versioned_router("v1")
@@ -48,14 +53,17 @@ def create_country(
 @v1_router.patch("/admin/countries/{country_id}", status_code=status.HTTP_200_OK)
 def patch_country(
     country_id: int,
-    data: CountryEntity,
+    data: UpdateCountryRequest,
     country_service: Annotated[CountryService, Depends(get_country_service)],
 ) -> CountryResponse:
-    result = country_service.update_country(country_id, data)
+    country_entity = mapUpdateCountryRequestToEntity(data)
+    result = country_service.update_country(country_id, country_entity)
     return CountryResponse(status="success", data=result)
 
 
-@v1_router.delete("/admin/countries/{country_id}", status_code=status.HTTP_204_NO_CONTENT)
+@v1_router.delete(
+    "/admin/countries/{country_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 def delete_country(
     country_id: int,
     country_service: Annotated[CountryService, Depends(get_country_service)],

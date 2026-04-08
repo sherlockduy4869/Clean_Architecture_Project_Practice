@@ -50,8 +50,7 @@ class CountryRepository(ICountryRepository):
         )
         # TODO: raise exception if country_model is None
 
-        country_model = map_country_entity_to_country_model(country)
-        self.session.update(country_model)
+        country_model = map_country_entity_to_country_model(country, country_model)
         self.session.commit()
         return map_country_model_to_country_entity(country_model)
 
