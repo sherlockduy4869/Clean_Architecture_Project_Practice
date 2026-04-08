@@ -4,7 +4,7 @@ from app.features.admin.country.domain.country_entity import CountryEntity
 
 class ICountryRepository(ABC):
     @abstractmethod
-    def get_all_countries(self) -> list[CountryEntity]:
+    def get_all_countries(self, skip: int, limit: int) -> list[CountryEntity]:
         pass
 
     @abstractmethod

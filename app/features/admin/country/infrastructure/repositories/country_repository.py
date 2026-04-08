@@ -14,16 +14,24 @@ from app.features.admin.country.infrastructure.mappers.map_country_model_to_coun
     map_country_model_to_country_entity,
 )
 
+from sqlalchemy.sql import func
+import math
+
 
 class CountryRepository(ICountryRepository):
     def __init__(self, session: Session):
         self.session: Session = session
 
     @override
-    def get_all_countries(self) -> list[CountryEntity]:
-        countries = self.session.query(CountryModel).all()
+    def get_all_countries(self, skip: int, limit: int) -> tuple[list[CountryEntity], int, int]:
+        countries = self.session.query(CountryModel).offset(skip).limit(limit).all()
+
+        total = self.session.query(func.count(CountryModel.id)).scalar() or 0
+
+        total_pages = math.ceil(total / limit) if limit > 0 else 1
+
         result = (map_country_model_to_country_entity(country) for country in countries)
-        return result
+        return result, total, total_pages
 
     @override
     def get_country_by_id(self, country_id: int) -> CountryEntity:
@@ -32,7 +40,7 @@ class CountryRepository(ICountryRepository):
             .filter(CountryModel.id == country_id)
             .first()
         )
-        return result
+        return map_country_model_to_country_entity(result)
 
     @override
     def create_country(self, country: CountryEntity) -> CountryEntity:

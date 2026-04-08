@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import Depends, status
+from fastapi import Depends, Query, status
 from app.core.router.router import get_versioned_router
 from app.features.admin.country.application.country_service import CountryService
 from app.features.admin.country.interface.dependencies import get_country_service
@@ -8,6 +8,7 @@ from app.features.admin.country.interface.schemas import (
     CountryResponse,
     CreateCountryRequest,
     UpdateCountryRequest,
+    PaginationMeta,
 )
 from app.features.admin.country.domain.country_entity import CountryEntity
 from app.features.admin.country.interface.mappers.map_create_country_schema_to_entity import (
@@ -24,9 +25,24 @@ v1_router = get_versioned_router("v1")
 @v1_router.get("/admin/countries", status_code=status.HTTP_200_OK)
 def get_countries(
     country_service: Annotated[CountryService, Depends(get_country_service)],
+    skip: Annotated[
+        int, Query(ge=1, description="Page number should be greater than or equal to 1")
+    ] = 1,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            description="Number of items per page should be greater than or equal to 1",
+        ),
+    ] = 10,
 ) -> CountryListResponse:
-    result = country_service.get_all_countries()
-    return CountryListResponse(status="success", data=result)
+    result, total, total_pages = country_service.get_all_countries(skip - 1, limit)
+
+    meta: PaginationMeta = PaginationMeta(
+        total=total, total_pages=total_pages, page_size=limit, current_page=skip
+    )
+
+    return CountryListResponse(status="success", data=result, meta=meta)
 
 
 @v1_router.get("/admin/countries/{country_id}", status_code=status.HTTP_200_OK)

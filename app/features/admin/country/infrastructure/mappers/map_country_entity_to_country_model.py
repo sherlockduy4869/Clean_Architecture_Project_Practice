@@ -16,16 +16,16 @@ def map_country_entity_to_country_model(
         CountryModel: The mapped CountryModel instance.
     """
 
-    if model is not None:
+    if model is None:
         return CountryModel(
-            id=model.id,
+            id=country_entity.id,
             name=country_entity.name,
             country_code=country_entity.country_code,
             currency_code=country_entity.currency_code,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
+            created_at=country_entity.created_at,
+            updated_at=country_entity.updated_at,
         )
-   
+
     mapper: Mapper[CountryModel] = inspect((CountryModel))
     column_names = [cols.key for cols in mapper.column_attrs]
 

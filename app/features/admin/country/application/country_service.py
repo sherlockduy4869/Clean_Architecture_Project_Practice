@@ -8,8 +8,8 @@ class CountryService:
     def __init__(self, country_repository: ICountryRepository):
         self.country_repository = country_repository
 
-    def get_all_countries(self) -> list[CountryEntity]:
-        return self.country_repository.get_all_countries()
+    def get_all_countries(self, skip: int, limit: int) -> tuple[list[CountryEntity], int, int]:
+        return self.country_repository.get_all_countries(skip, limit)
 
     def get_country_by_id(self, country_id) -> CountryEntity:
         return self.country_repository.get_country_by_id(country_id)
