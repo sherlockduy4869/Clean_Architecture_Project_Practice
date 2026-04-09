@@ -15,7 +15,28 @@ from app.features.admin.country.infrastructure.mappers.map_country_model_to_coun
 )
 
 from sqlalchemy.sql import func
+from sqlalchemy import or_
 import math
+
+from sqlalchemy.exc import OperationalError, SQLAlchemyError, IntegrityError
+from app.core.exceptions.repository import (
+    ConnectionFailure,
+    TransactionFailure,
+    RepositoryException,
+    UniqueConstraintFailure,
+)
+
+from app.core.exceptions.domain import (
+    DomainException,
+    NotFoundException,
+    AlreadyExistsException,
+)
+
+from app.features.admin.country.domain.exceptions.exception import (
+    CountryNotFoundException,
+)
+
+from typing import Optional
 
 
 class CountryRepository(ICountryRepository):
@@ -23,53 +44,125 @@ class CountryRepository(ICountryRepository):
         self.session: Session = session
 
     @override
-    def get_all_countries(self, skip: int, limit: int) -> tuple[list[CountryEntity], int, int]:
-        countries = self.session.query(CountryModel).offset(skip).limit(limit).all()
+    def get_all_countries(
+        self, skip: int, limit: int, search: Optional[str] = None
+    ) -> tuple[list[CountryEntity], int, int]:
+        try:
 
-        total = self.session.query(func.count(CountryModel.id)).scalar() or 0
+            query = self.session.query(CountryModel)
 
-        total_pages = math.ceil(total / limit) if limit > 0 else 1
+            if search:
+                pattern = f"%{search}%"
+                query = query.filter(
+                    or_(
+                        CountryModel.name.ilike(pattern),
+                        CountryModel.country_code.ilike(pattern),
+                        CountryModel.currency_code.ilike(pattern),
+                    )
+                )
 
-        result = (map_country_model_to_country_entity(country) for country in countries)
-        return result, total, total_pages
+            countries = (
+                query.order_by(CountryModel.name.asc())
+                .offset(skip)
+                .limit(limit)
+                .all()
+            )
+
+            total = query.with_entities(func.count(CountryModel.id)).scalar() or 0
+
+            total_pages = math.ceil(total / limit) if limit > 0 else 1
+
+            result = (
+                map_country_model_to_country_entity(country) for country in countries
+            )
+            return result, total, total_pages
+        except OperationalError as e:
+            raise ConnectionFailure() from e
+        except SQLAlchemyError as e:
+            raise TransactionFailure() from e
+        except Exception as e:
+            raise RepositoryException() from e
 
     @override
     def get_country_by_id(self, country_id: int) -> CountryEntity:
-        result = (
-            self.session.query(CountryModel)
-            .filter(CountryModel.id == country_id)
-            .first()
-        )
-        return map_country_model_to_country_entity(result)
+        try:
+            result = (
+                self.session.query(CountryModel)
+                .filter(CountryModel.id == country_id)
+                .first()
+            )
+
+            if result is None:
+                raise CountryNotFoundException(entity="Country", key=country_id)
+
+            return map_country_model_to_country_entity(result)
+        except OperationalError as e:
+            raise ConnectionFailure() from e
+        except SQLAlchemyError as e:
+            raise TransactionFailure() from e
 
     @override
     def create_country(self, country: CountryEntity) -> CountryEntity:
-        country_model = map_country_entity_to_country_model(country)
-        self.session.add(country_model)
-        self.session.commit()
-        return map_country_model_to_country_entity(country_model)
+        try:
+            country_model = map_country_entity_to_country_model(country)
+            self.session.add(country_model)
+            self.session.commit()
+            return map_country_model_to_country_entity(country_model)
+        except IntegrityError as e:
+            self.session.rollback()
+            raise UniqueConstraintFailure() from e
+        except OperationalError as e:
+            self.session.rollback()
+            raise ConnectionFailure() from e
+        except SQLAlchemyError as e:
+            self.session.rollback()
+            raise TransactionFailure() from e
+        except Exception as e:
+            raise RepositoryException() from e
 
     @override
     def update_country(self, country_id: int, country: CountryEntity) -> CountryEntity:
-        country_model = (
-            self.session.query(CountryModel)
-            .filter(CountryModel.id == country_id)
-            .first()
-        )
-        # TODO: raise exception if country_model is None
+        try:
+            country_model = (
+                self.session.query(CountryModel)
+                .filter(CountryModel.id == country_id)
+                .first()
+            )
+            # TODO: raise exception if country_model is None
 
-        country_model = map_country_entity_to_country_model(country, country_model)
-        self.session.commit()
-        return map_country_model_to_country_entity(country_model)
+            country_model = map_country_entity_to_country_model(country, country_model)
+            self.session.commit()
+            return map_country_model_to_country_entity(country_model)
+        except IntegrityError as e:
+            self.session.rollback()
+            raise UniqueConstraintFailure() from e
+        except OperationalError as e:
+            self.session.rollback()
+            raise ConnectionFailure() from e
+        except SQLAlchemyError as e:
+            self.session.rollback()
+            raise TransactionFailure() from e
+        except Exception as e:
+            raise RepositoryException() from e
 
     @override
     def delete_country(self, country_id: int) -> bool:
-        country_model = (
-            self.session.query(CountryModel)
-            .filter(CountryModel.id == country_id)
-            .first()
-        )
-        # TODO: raise exception if country_model is None
-        self.session.delete(country_model)
-        self.session.commit()
-        return True
+        try:
+            country_model = (
+                self.session.query(CountryModel)
+                .filter(CountryModel.id == country_id)
+                .first()
+            )
+
+            if country_model is None:
+                raise CountryNotFoundException(entity="Country", key=country_id)
+
+            self.session.delete(country_model)
+            self.session.commit()
+            return True
+        except OperationalError as e:
+            self.session.rollback()
+            raise ConnectionFailure() from e
+        except SQLAlchemyError as e:
+            self.session.rollback()
+            raise TransactionFailure() from e

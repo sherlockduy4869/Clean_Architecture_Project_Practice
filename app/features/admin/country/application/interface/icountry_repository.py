@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from app.features.admin.country.domain.country_entity import CountryEntity
 
+
 class ICountryRepository(ABC):
     @abstractmethod
-    def get_all_countries(self, skip: int, limit: int) -> list[CountryEntity]:
+    def get_all_countries(
+        self, skip: int, limit: int, search: Optional[str] = None
+    ) -> tuple[list[CountryEntity], int, int]:
         pass
 
     @abstractmethod

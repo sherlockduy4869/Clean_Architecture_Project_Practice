@@ -19,6 +19,8 @@ from app.features.admin.country.interface.mappers.map_update_country_schema_to_e
     mapUpdateCountryRequestToEntity,
 )
 
+from typing import Optional
+
 v1_router = get_versioned_router("v1")
 
 
@@ -35,8 +37,14 @@ def get_countries(
             description="Number of items per page should be greater than or equal to 1",
         ),
     ] = 10,
+    search: Annotated[
+        Optional[str],
+        Query(
+            description="Search term for filtering countries by name, code, or currency code",
+        ),
+    ] = None,
 ) -> CountryListResponse:
-    result, total, total_pages = country_service.get_all_countries(skip - 1, limit)
+    result, total, total_pages = country_service.get_all_countries(skip - 1, limit, search)
 
     meta: PaginationMeta = PaginationMeta(
         total=total, total_pages=total_pages, page_size=limit, current_page=skip
